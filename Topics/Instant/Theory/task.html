@@ -1,0 +1,128 @@
+<h2>Instant</h2>
+<html>
+ <head></head>
+ <body>
+  <p>The <code class="language-java">java.time</code> package provides us with classes for working with chronographic units. In this topic, you will explore the <code class="language-java">Instant</code> class: a <strong>date-time</strong> <strong>unit</strong> suitable for capturing event timestamps during the application execution. You will learn how to create those units and perform various operations with them. <code class="language-java">Instant</code> has a lot in common with the <code class="language-java">LocalDateTime</code> class but they also have differences which this theory will help you discover.</p> 
+  <h5 id="creational-methods">Creational methods</h5> 
+  <p>The <code class="language-java">Instant</code> units are created in a similar way to <code class="language-java">Period</code> and <code class="language-java">Duration</code> class units. It provides static methods for creating the date and time in the <strong>ISO 8601 </strong>format. <code class="language-java">Instant</code> values are stored in a <code class="language-java">long</code> variable storing the seconds counting from the <strong>Java epoch</strong> and an <code class="language-java">int</code> variable storing the nanoseconds of a second. <strong>Epoch </strong>is a common date-time representation format counting the date and time relative to January 1, 1970 (midnight UTC/GMT) which looks like <code class="language-java">1970-01-01T00:00:00Z</code><strong> </strong>in the ISO 8601 format. You can obtain this value with the <code class="language-java">Instant.EPOCH</code> static field.</p> 
+  <pre><code class="language-java">Instant epoch = Instant.EPOCH;
+System.out.println(epoch); // 1970-01-01T00:00:00Z</code></pre> 
+  <p>In the code above the last <code class="language-java">Z</code> stands for the time-zone ID, which is<strong> </strong>zero in our case. So, it shows us the epoch time of the GMT0<strong> </strong>time zone. Of course, you can obtain the time of any zone you need. We will show how to do that later in this section.<br> So, in Java, when working with the <code class="language-java">Instant</code> class, you specify the date before or after the epoch time counting in seconds and nanoseconds.<br> Let's start with the three basic methods you will probably use most:</p> 
+  <pre><code class="language-java">long posValue = 1234567890L;
+long negValue = -1234567890L;
+
+// Adding specified milliseconds to epoch
+Instant milli = Instant.ofEpochMilli(posValue); // 1970-01-15T06:56:07.890Z
+// Adding specified seconds to epoch
+Instant second = Instant.ofEpochSecond(posValue); // 2009-02-13T23:31:30Z
+// Adding specified milliseconds and nanoseconds to epoch
+Instant secondNano = Instant.ofEpochSecond(posValue, 123L); // 2009-02-13T23:31:30.000000123Z
+// Adding specified milliseconds and nanoseconds to epoch. Version 2
+Instant nanoRounded = Instant.ofEpochSecond(posValue, 1_000_000_123L); // 2009-02-13T23:31:31.000000123Z
+
+
+// Subtracting specified milliseconds from epoch
+Instant milli = Instant.ofEpochMilli(negValue); // 1969-12-17T17:03:52.110Z
+// Subtracting specified seconds from epoch
+Instant second = Instant.ofEpochSecond(negValue); // 1930-11-18T00:28:30Z
+// Subtracting specified milliseconds and nanoseconds from epoch
+Instant secondNano = Instant.ofEpochSecond(negValue, 123L); // 1930-11-18T00:28:30.000000123Z
+// Subtracting specified milliseconds and nanoseconds from epoch. Version 2
+Instant nanoRounded = Instant.ofEpochSecond(negValue, 1_000_000_123L); // 1930-11-18T00:28:31.000000123Z</code></pre> 
+  <p></p>
+  <div class="alert alert-primary">
+   Although 
+   <code class="language-java">ofEpochSecond(long epochSecond, long nanoAdjustment)</code> accepts a 
+   <code class="language-java">long</code> type variable, it rounds each 
+   <strong>1bln </strong>nanoseconds to a second and adds to the 
+   <code class="language-java">epochSecond</code>, and the rest is stored in an 
+   <code class="language-java">int</code> variable, as we mentioned earlier.
+  </div>
+  <br> We created units bigger than January 1, 1970 (midnight UTC/GMT) by passing positive values to methods, and smaller units by passing negative values. As you see from the last letter, all of them show the time of GMT0
+  <strong> </strong>time zone. There will be many situations when you will need to obtain an 
+  <code class="language-java">Instant</code> unit for a given time zone. In such cases you can use the 
+  <code class="language-java">ZoneId</code> class to specify the zone:
+  <p></p> 
+  <pre><code class="language-java">Instant instant = Instant.ofEpochSecond(1234567890L);
+       
+System.out.println(instant); // 2009-02-13T23:31:30Z 
+System.out.println(instant.atZone(ZoneId.of("GMT+4"))); // 2009-02-14T03:31:30+04:00[GMT+04:00]
+System.out.println(instant.atZone(ZoneId.of("+04:00"))); // 2009-02-14T03:31:30+04:00
+System.out.println(instant.atZone(ZoneId.of("Asia/Yerevan"))); // 2009-02-14T03:31:30+04:00[Asia/Yerevan]
+System.out.println(instant.atZone(ZoneId.systemDefault())); // 2009-02-14T03:31:30+04:00[Asia/Yerevan]
+        
+System.out.println(ZoneId.systemDefault().getId()); // Asia/Yerevan
+System.out.println(ZoneId.systemDefault().getRules()); // ZoneRules[currentStandardOffset=+04:00]</code></pre> 
+  <p>If you don't know your time zone <strong>ID</strong> or the <strong>offset</strong> (the difference between a specified time zone and GMT0), the last two lines from the code above will help you. In our case, it shows Armenia/Yerevan time zone.<br> The next method for creating Instant units is <code class="language-java">Instant.parse()</code>, which creates a unit object by accepting a text and parsing it to the <code class="language-java">Instant</code> type.</p> 
+  <pre><code class="language-java">Instant instant = Instant.parse("2009-02-14T03:31:30Z");
+    
+System.out.println(instant); // 2009-02-14T03:31:30Z
+System.out.println(instant.atZone(ZoneId.of("GMT+4"))); // 2009-02-14T07:31:30+04:00[GMT+04:00]</code></pre> 
+  <h5 id="operational-methods">Operational methods</h5> 
+  <p>Now that you know how to create <code class="language-java">Instant</code> units, let's explore its other methods which help us perform different kinds of operations. We will start with the simple <code class="language-java">isBefore()</code>/<code class="language-java">isAfter()</code> pair of methods comparing the chronological order of two units.</p> 
+  <pre><code class="language-java">Instant instant1 = Instant.ofEpochSecond(123456L);
+Instant instant2 = Instant.ofEpochSecond(123456789L);
+    
+System.out.println(instant1.isAfter(instant2)); // false
+System.out.println(instant1.isBefore(instant2)); // true</code></pre> 
+  <p>Besides these two returning the <code class="language-java">boolean</code> result of the comparison, the class implements the <code class="language-java">compareTo()</code> method from the <code class="language-java">Comparable</code> interface:</p> 
+  <pre><code class="language-java">Instant instant1 = Instant.ofEpochSecond(123456L);
+Instant instant2 = Instant.ofEpochSecond(123456789L);
+
+System.out.println(instant1.compareTo(instant2)); // -1</code></pre> 
+  <p>Depending on the situation, you can choose which approach to comparison is more suitable for you.<br> Working with date and time units, you will definitely need to add or subtract two units at some point. This class doesn't implement the <code class="language-java">addTo()</code> and <code class="language-java">subtractFrom()</code> methods that are implemented in the <code class="language-java">Period</code> and <code class="language-java">Duration</code> classes, but it implements some others: <code class="language-java">minus()</code>, <code class="language-java">plus()</code> and their "subversions", such as <code class="language-java">minusSeconds()</code>, <code class="language-java">plusSeconds()</code>, and so on.</p> 
+  <pre><code class="language-java">Instant instant = Instant.ofEpochSecond(123456L);
+
+System.out.println(instant); // 1970-01-02T10:17:36Z
+
+System.out.println(instant.minus(Period.ofDays(1))); // 1970-01-01T10:17:36Z
+System.out.println(instant.minus(Duration.ofDays(1))); //  1970-01-01T10:17:36Z
+System.out.println(instant.minus(1, ChronoUnit.DAYS)); // 1970-01-01T10:17:36Z
+
+System.out.println(instant.plus(Period.ofDays(1))); // 1970-01-03T10:17:36Z
+System.out.println(instant.plus(Duration.ofDays(1))); // 1970-01-03T10:17:36Z
+System.out.println(instant.plus(1, ChronoUnit.DAYS)); // 1970-01-03T10:17:36Z
+
+System.out.println(instant); // 1970-01-02T10:17:36Z</code></pre> 
+  <p> These two methods have limitations concerning supported unit types. They accept units that are smaller<strong> </strong>than days (inclusive). </p> 
+  <pre><code class="language-java">Instant instant = Instant.ofEpochSecond(123456L);
+ 
+System.out.println(instant.minus(Period.of(123, 12, 3))); // UnsupportedTemporalTypeException
+System.out.println(instant.plus(1, ChronoUnit.WEEKS)); // UnsupportedTemporalTypeException
+        
+System.out.println(instant.plus(Period.ofWeeks(1))); // 1970-01-09T10:17:36Z</code></pre> 
+  <p>Here, all lines except the last one will throw an exception. We won't tell you why: do some research, investigate the code, and feel free to share the answer with other learners. <br> This class has one more interesting method to calculate the difference between two units. It shows the time until another <code class="language-java">Instant</code> unit is represented in the form of the specified unit:</p> 
+  <pre><code class="language-java">Instant instant = Instant.ofEpochSecond(100200300L);
+System.out.println(Instant.EPOCH.until(instant, ChronoUnit.DAYS)); // 1159
+System.out.println(Instant.EPOCH.until(instant, ChronoUnit.HOURS)); // 27833</code></pre> 
+  <h5 id="get-operations">Get operations</h5> 
+  <p>Now let's take a look at a group of similar methods performing <code class="language-java">get</code><strong> </strong>operations from an <code class="language-java">Instant</code> unit. There are three<strong> </strong>different methods for this purpose, which will show different results depending on how you created the <code class="language-java">Instant</code> unit. We will consider one case using <code class="language-java">Instant.ofEpochSecond()</code>, and you can explore the rest of them yourself.</p> 
+  <pre><code class="language-java">Instant ofEpochSecond = Instant.ofEpochSecond(123456L, 789L);
+System.out.println(ofEpochSecond); // 1970-01-02T10:17:36.000000789Z
+System.out.println(ofEpochSecond.getEpochSecond()); // 123456
+
+System.out.println(ofEpochSecond.get(ChronoField.MICRO_OF_SECOND)); // 0
+System.out.println(ofEpochSecond.get(ChronoField.MILLI_OF_SECOND)); // 0
+System.out.println(ofEpochSecond.get(ChronoField.NANO_OF_SECOND)); // 789
+
+System.out.println(ofEpochSecond.getLong(ChronoField.INSTANT_SECONDS)); // 123456
+System.out.println(ofEpochSecond.getLong(ChronoField.MICRO_OF_SECOND)); // 0
+System.out.println(ofEpochSecond.getLong(ChronoField.MILLI_OF_SECOND)); // 0
+System.out.println(ofEpochSecond.getLong(ChronoField.NANO_OF_SECOND)); // 789</code></pre> 
+  <p>The first <code class="language-java">getEpochSecond()</code> returns a <code class="language-java">long</code> value storing the unit seconds. The other two perform similarly, but the <code class="language-java">get()</code> method returns the value of the specified unit as an <code class="language-java">int</code>, while <code class="language-java">getLong()</code> returns a <code class="language-java">long</code>. Since <code class="language-java">ofEpochSecond()</code> doesn't use milliseconds, <code class="language-java">get(ChronoField.MICRO_OF_SECOND)</code> and <code class="language-java">get(ChronoField.MILLI_OF_SECOND)</code> return zero. The same method calls with the same arguments wouldn't return zero if the <code class="language-java">Instant</code> unit was created using the <code class="language-java">ofEpochMilli()</code> method.<br> </p>
+  <div class="alert alert-primary">
+   Note that both 
+   <code class="language-java">get()</code> and 
+   <code class="language-java">getLong()</code> methods accept only those 
+   <code class="language-java">ChronoField</code> units you can see in the code above. Passing other types will cause an 
+   <code class="language-java">UnsupportedTemporalTypeException</code>.
+  </div>
+  <p></p> 
+  <h5 id="instant-vs-localdatetime">Instant vs LocalDateTime</h5> 
+  <p>Although <code class="language-java">Instant</code> and <code class="language-java">LocalDateTime</code> are date-time units, they are completely different in their nature. <code class="language-java">Instant</code> is a representation of a moment on a timeline relative to an epoch. <code class="language-java">LocalDateTime</code> is a representation of a calendar date and daytime combination. The first one stores its value in seconds and nanoseconds, while the second one stores it as a pair of <code class="language-java">LocalDate</code> and <code class="language-java">LocalTime</code> objects. Finally, <code class="language-java">LocalDateTime</code> doesn't contain any information regarding a time zone, but if you create its object with the <code class="language-java">now()</code> method, it will be created depending on your system's default zone. On the other hand, <code class="language-java">Instant</code> contains that information and shows the GMT0 time-stamp by default in any case. </p> 
+  <pre><code class="language-java">Instant instant = Instant.now(); // System time zone independent, shows GMT0
+LocalDateTime dateTime = LocalDateTime.now(); // System time zone dependent</code></pre> 
+  <h5 id="conclusion">Conclusion</h5> 
+  <p>In this topic dedicated to the <code class="language-java">Instant</code> class, you learned how to create its units and how those unit values are stored internally. You also learned about some of its operational methods and its main differences from the <code class="language-java">LocalDateTime</code> class. The functionality of this class is rather straightforward but you should study it in detail as it has plenty of features and it's crucial to understand the behavior of each of them.</p>
+ </body>
+</html>

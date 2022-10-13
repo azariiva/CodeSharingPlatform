@@ -1,0 +1,21 @@
+type: code
+files:
+- name: src/Main.java
+  visible: true
+  text: "import java.util.*;\nimport java.time.Instant;\n\npublic class Main {\n \
+    \   public static void main(String[] args) {\n        Scanner scanner = new Scanner(System.in);\n\
+    \        List<Instant> instantList = createInstantList(scanner);\n\n        long\
+    \ result = getMaxMinusMin(instantList); \n\n        System.out.println(result);\n\
+    \    }  \n\n    public static List<Instant> createInstantList(Scanner scanner)\
+    \ {\n        List<Instant> instantList = new ArrayList<>();\n        instantList.add(Instant.parse(scanner.nextLine()));\n\
+    \        instantList.add(Instant.parse(scanner.nextLine()));\n        instantList.add(Instant.parse(scanner.nextLine()));\n\
+    \        instantList.add(Instant.parse(scanner.nextLine()));\n\n        return\
+    \ instantList;\n    }\n\n    private static long getMaxMinusMin(List<Instant>\
+    \ instantList) {\n\n    }\n}"
+  learner_created: false
+feedback_link: https://hyperskill.org/learn/step/21247#comment
+status: Solved
+feedback:
+  message: <html>Correct solution</html>
+  time: Sun, 14 Aug 2022 19:38:10 UTC
+record: -1

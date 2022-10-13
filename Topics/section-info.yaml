@@ -1,0 +1,20 @@
+content:
+- toString()
+- LocalTime
+- LocalDate
+- LocalDateTime
+- Interface
+- Instance methods
+- Iterating over arrays
+- ArrayList
+- Comparable
+- Instant
+- Anonymous classes
+- Default methods
+- Lambda expressions
+- Optional
+- Generic methods
+- Overview of the basic program
+- Multiple constructors
+- Hierarchy of exceptions
+- Debugging techniques

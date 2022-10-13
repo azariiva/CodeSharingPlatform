@@ -1,0 +1,925 @@
+type: edu
+files:
+- name: test/CodeSharingPlatformTest.java
+  visible: false
+  text: |
+    import com.google.gson.JsonArray;
+    import com.google.gson.JsonObject;
+    import org.hyperskill.hstest.dynamic.input.DynamicTesting;
+    import org.hyperskill.hstest.dynamic.input.DynamicTestingMethod;
+    import org.hyperskill.hstest.exception.outcomes.WrongAnswer;
+    import org.hyperskill.hstest.mocks.web.response.HttpResponse;
+    import org.hyperskill.hstest.stage.SpringTest;
+    import org.hyperskill.hstest.testcase.CheckResult;
+    import org.jsoup.Jsoup;
+    import org.jsoup.nodes.Document;
+    import org.jsoup.nodes.Element;
+    import org.jsoup.select.Elements;
+    import platform.CodeSharingPlatform;
+
+    import java.util.HashMap;
+    import java.util.Map;
+
+    import static org.hyperskill.hstest.testing.expect.Expectation.expect;
+    import static org.hyperskill.hstest.testing.expect.json.JsonChecker.isArray;
+    import static org.hyperskill.hstest.testing.expect.json.JsonChecker.isObject;
+    import static org.hyperskill.hstest.testing.expect.json.JsonChecker.isString;
+
+    public class CodeSharingPlatformTest extends SpringTest {
+        public CodeSharingPlatformTest() {
+            super(CodeSharingPlatform.class, "../snippets.mv.db");
+        }
+
+        final String API_CODE = "/api/code/";
+        final String WEB_CODE = "/code/";
+
+        final String API_CODE_NEW = "/api/code/new";
+        final String WEB_CODE_NEW = "/code/new";
+
+        final String API_LATEST = "/api/code/latest";
+        final String WEB_LATEST = "/code/latest";
+
+        final String[] SNIPPETS = {
+            "public static void ...",
+            "class Code { ...",
+            "Snippet #3",
+            "Snippet #4",
+            "Snippet #5",
+            "Snippet #6",
+            "Snippet #7",
+            "Snippet #8",
+            "Snippet #9",
+            "Snippet #10",
+            "Snippet #11",
+            "Snippet #12",
+            "Snippet #13",
+            "Snippet #14",
+        };
+
+        final Map<Integer, String> ids = new HashMap<>();
+        final Map<Integer, String> dates = new HashMap<>();
+
+        static String th(int val) {
+            if (val == 1) {
+                return "" + val + "st";
+            } else if (val == 2) {
+                return "" + val + "nd";
+            } else if (val == 3) {
+                return "" + val + "rd";
+            } else {
+                return "" + val + "th";
+            }
+        }
+
+        static void checkStatusCode(HttpResponse resp, int status) {
+            if (resp.getStatusCode() != status) {
+                throw new WrongAnswer(
+                    resp.getRequest().getMethod() + " " +
+                        resp.getRequest().getLocalUri() +
+                        " should respond with status code " + status + ", " +
+                        "responded: " + resp.getStatusCode() + "\n\n" +
+                        "Response body:\n\n" + resp.getContent()
+                );
+            }
+        }
+
+        static void checkTitle(Document doc, String url, String title) {
+            if (!doc.title().equals(title)) {
+                throw new WrongAnswer("GET " + url +
+                    " should contain title \"" + title + "\"");
+            }
+        }
+
+        static Element getSingleTag(Element doc, String url, String tag) {
+            Elements elems = getElemsByTag(doc, url, tag, 1);
+            return elems.get(0);
+        }
+
+        static Elements getElemsByTag(Element doc, String url, String tag, int length) {
+            Elements elems = doc.getElementsByTag(tag);
+            if (elems.size() != length) {
+                throw new WrongAnswer("GET " + url +
+                    " should contain " + length + " <" + tag + "> " +
+                    "element"+ (length == 1 ? "" : "s") +", found: " + elems.size());
+            }
+            return elems;
+        }
+
+        static Element getById(Element doc, String url, String id, String tag) {
+            Element elem = doc.getElementById(id);
+
+            if (elem == null) {
+                throw new WrongAnswer("GET " + url +
+                    " should contain an element with id \"" + id + "\", no one found");
+            }
+
+            if (!elem.tagName().equals(tag)) {
+                throw new WrongAnswer("GET " + url +
+                    " should contain an element with id  \"" + id + "\" and tag \"" + tag + "\", " +
+                    "found another tag: \"" + elem.tagName() + "\"");
+            }
+
+            return elem;
+        }
+
+        @DynamicTestingMethod
+        public DynamicTesting[] dt = new DynamicTesting[] {
+            // test 1
+            this::checkWebCodeNew,
+
+            // test 2
+            () -> postSnippet(0),
+            () -> checkApiCode(0),
+            () -> checkWebCode(0),
+            () -> checkApiLatest(0),
+            () -> checkWebLatest(0),
+
+            // test 7
+            () -> postSnippet(1),
+            () -> checkApiCode(0),
+            () -> checkWebCode(0),
+            () -> checkApiCode(1),
+            () -> checkWebCode(1),
+            () -> checkApiLatest(1, 0),
+            () -> checkWebLatest(1, 0),
+
+            // test 14
+            () -> postSnippet(2),
+            () -> postSnippet(3),
+            () -> postSnippet(4),
+            () -> postSnippet(5),
+            () -> postSnippet(6),
+            () -> postSnippet(7),
+            () -> postSnippet(8),
+            () -> postSnippet(9),
+            () -> postSnippet(10),
+            () -> postSnippet(11),
+            () -> postSnippet(12),
+            () -> postSnippet(13),
+
+            // test 26
+            () -> checkApiCode(0),
+            () -> checkWebCode(0),
+            () -> checkApiCode(1),
+            () -> checkWebCode(1),
+            () -> checkApiCode(2),
+            () -> checkWebCode(2),
+            () -> checkApiCode(3),
+            () -> checkWebCode(3),
+            () -> checkApiCode(4),
+            () -> checkWebCode(4),
+            () -> checkApiCode(5),
+            () -> checkWebCode(5),
+            () -> checkApiCode(6),
+            () -> checkWebCode(6),
+            () -> checkApiCode(7),
+            () -> checkWebCode(7),
+            () -> checkApiCode(8),
+            () -> checkWebCode(8),
+            () -> checkApiCode(9),
+            () -> checkWebCode(9),
+            () -> checkApiCode(10),
+            () -> checkWebCode(10),
+            () -> checkApiCode(11),
+            () -> checkWebCode(11),
+            () -> checkApiCode(12),
+            () -> checkWebCode(12),
+            () -> checkApiCode(13),
+            () -> checkWebCode(13),
+
+            // test 54
+            () -> checkApiLatest(13, 12, 11, 10, 9, 8, 7, 6, 5, 4),
+            () -> checkWebLatest(13, 12, 11, 10, 9, 8, 7, 6, 5, 4),
+
+            // test 56
+            this::reloadServer,
+
+            // test 57
+            () -> checkApiCode(0),
+            () -> checkWebCode(0),
+            () -> checkApiCode(1),
+            () -> checkWebCode(1),
+            () -> checkApiCode(2),
+            () -> checkWebCode(2),
+            () -> checkApiCode(3),
+            () -> checkWebCode(3),
+            () -> checkApiCode(4),
+            () -> checkWebCode(4),
+            () -> checkApiCode(5),
+            () -> checkWebCode(5),
+            () -> checkApiCode(6),
+            () -> checkWebCode(6),
+            () -> checkApiCode(7),
+            () -> checkWebCode(7),
+            () -> checkApiCode(8),
+            () -> checkWebCode(8),
+            () -> checkApiCode(9),
+            () -> checkWebCode(9),
+            () -> checkApiCode(10),
+            () -> checkWebCode(10),
+            () -> checkApiCode(11),
+            () -> checkWebCode(11),
+            () -> checkApiCode(12),
+            () -> checkWebCode(12),
+            () -> checkApiCode(13),
+            () -> checkWebCode(13),
+
+            // test 85
+            () -> checkApiLatest(13, 12, 11, 10, 9, 8, 7, 6, 5, 4),
+            () -> checkWebLatest(13, 12, 11, 10, 9, 8, 7, 6, 5, 4),
+        };
+
+        private CheckResult checkApiCode(int id) {
+            String codeId = ids.get(id);
+            String snippet = SNIPPETS[id];
+
+            HttpResponse resp = get(API_CODE + codeId).send();
+            checkStatusCode(resp, 200);
+
+            expect(resp.getContent()).asJson().check(
+                isObject()
+                    .value("code", snippet)
+                    .value("date", isString(s -> {
+                        if (dates.containsKey(id)) {
+                            return s.equals(dates.get(id));
+                        }
+                        dates.put(id, s);
+                        return true;
+                    }))
+            );
+
+            return CheckResult.correct();
+        }
+
+        private CheckResult checkWebCode(int id) {
+            String codeId = ids.get(id);
+            String apiSnippet = SNIPPETS[id];
+            String apiDate = dates.get(id);
+
+            String req = WEB_CODE + codeId;
+            HttpResponse resp = get(req).send();
+            checkStatusCode(resp, 200);
+
+            String html = resp.getContent();
+            Document doc = Jsoup.parse(html);
+
+            checkTitle(doc, req, "Code");
+
+            Element pre = getById(doc, req, "code_snippet", "pre");
+            Element code = getSingleTag(pre, req, "code");
+
+            String webSnippetCode = code.text();
+            if (!webSnippetCode.trim().equals(apiSnippet.trim())) {
+                return CheckResult.wrong("Web code snippet " +
+                    "and api code snippet are different");
+            }
+
+            Element date = getById(doc, req, "load_date", "span");
+            String webSnippetDate = date.text();
+            if (!webSnippetDate.trim().equals(apiDate.trim())) {
+                return CheckResult.wrong("Web snippet date " +
+                    "and api snippet date are different");
+            }
+
+            if (!html.contains("hljs.initHighlightingOnLoad()")) {
+                return CheckResult.wrong(
+                    "Can't determine if code highlighting works or not.\n" +
+                    "Use \"hljs.initHighlightingOnLoad()\" inside the script tags in the HTML page.");
+            }
+
+            return CheckResult.correct();
+        }
+
+        private CheckResult checkWebCodeNew() {
+            HttpResponse resp = get(WEB_CODE_NEW).send();
+            checkStatusCode(resp, 200);
+
+            String html = resp.getContent();
+            Document doc = Jsoup.parse(html);
+
+            checkTitle(doc, WEB_CODE_NEW, "Create");
+
+            getById(doc, WEB_CODE_NEW, "code_snippet", "textarea");
+            getById(doc, WEB_CODE_NEW, "send_snippet", "button");
+
+            return CheckResult.correct();
+        }
+
+        private CheckResult postSnippet(int id) {
+            String snippet = SNIPPETS[id];
+
+            HttpResponse resp = post(API_CODE_NEW, "{\"code\":\"" + snippet + "\"}").send();
+            checkStatusCode(resp, 200);
+
+            expect(resp.getContent()).asJson().check(
+                isObject()
+                    .value("id", isString(i -> {
+                        try {
+                            Integer.parseInt(i);
+                        } catch (NumberFormatException ex) {
+                            return false;
+                        }
+                        ids.put(id, "" + i);
+                        return true;
+                    }))
+            );
+
+            return CheckResult.correct();
+        }
+
+        private CheckResult checkApiLatest(int... ids) {
+            String req = API_LATEST;
+            HttpResponse resp = get(req).send();
+            checkStatusCode(resp, 200);
+
+            expect(resp.getContent()).asJson().check(
+                isArray(ids.length, isObject()
+                    .value("code", isString())
+                    .value("date", isString())
+                )
+            );
+
+            JsonArray elem = resp.getJson().getAsJsonArray();
+            for (int i = 0; i < ids.length; i++) {
+                JsonObject item = elem.get(i).getAsJsonObject();
+
+                String actualSnippet = SNIPPETS[ids[i]];
+                String actualDate = dates.get(ids[i]);
+
+                String givenSnippet = item.get("code").getAsString();
+                String givenDate = item.get("date").getAsString();
+
+                if (!actualSnippet.equals(givenSnippet)) {
+                    return CheckResult.wrong("GET " + req + " " + th(i + 1) +
+                        " snippet doesn't match actual snippet.\n" +
+                        "Expected:\n" + actualSnippet + "\n" +
+                        "Found:\n" + givenSnippet);
+                }
+
+                if (!actualDate.equals(givenDate)) {
+                    return CheckResult.wrong("GET " + req + " " + th(i + 1) +
+                        " snippet's date doesn't match actual snippet's date.\n" +
+                        "Expected:\n" + actualDate + "\n" +
+                        "Found:\n" + givenDate);
+                }
+            }
+
+            return CheckResult.correct();
+        }
+
+        private CheckResult checkWebLatest(int... ids) {
+            String req = WEB_LATEST;
+            HttpResponse resp = get(req).send();
+            checkStatusCode(resp, 200);
+
+            String html = resp.getContent();
+            Document doc = Jsoup.parse(html);
+
+            checkTitle(doc, req, "Latest");
+
+            Elements preList = getElemsByTag(doc, req, "pre", ids.length);
+            Elements spanList = getElemsByTag(doc, req, "span", ids.length);
+
+            for (int i = 0; i < ids.length; i++) {
+                String apiSnippet = SNIPPETS[ids[i]];
+                String apiDate = dates.get(ids[i]);
+                Element pre = preList.get(i);
+
+                String webSnippetCode = pre.text();
+                if (!webSnippetCode.trim().equals(apiSnippet.trim())) {
+                    return CheckResult.wrong("GET " + req + " " + th(i + 1)
+                        + " snippet doesn't match " + th(i + 1) + " snippet via api.\n" +
+                        "Expected:\n" + apiSnippet + "\n" +
+                        "Found:\n" + webSnippetCode);
+                }
+
+                Element date = spanList.get(i);
+                String webSnippetDate = date.text();
+                if (!webSnippetDate.trim().equals(apiDate.trim())) {
+                    return CheckResult.wrong("GET " + req + " " + th(i + 1)
+                        + " snippet's date doesn't match " + th(i + 1)
+                        + " snippet's date via api.\n" +
+                        "Expected:\n" + apiDate + "\n" +
+                        "Found:\n" + webSnippetDate);
+                }
+            }
+
+            return CheckResult.correct();
+        }
+
+        private CheckResult reloadServer() {
+            try {
+                reloadSpring();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex.getMessage());
+            }
+            return CheckResult.correct();
+        }
+    }
+  learner_created: false
+- name: src/resources/static/js/send.js
+  visible: true
+  text: |-
+    function send() {
+        let object = {
+            "code": document.getElementById("code_snippet").value
+        };
+        let json = JSON.stringify(object);
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", '/api/code/new', false)
+        xhr.setRequestHeader('Content-type', 'application/json; charset=utf-8');
+        xhr.send(json);
+        if (xhr.status == 200) {
+            alert("Success!");
+        }
+    }
+  learner_created: true
+- name: src/resources/static/css/style.css
+  visible: true
+  text: |-
+    span {
+        color: green;
+        font-family: "Monaco", monospace;
+        font-size: 0.8rem;
+    }
+
+    pre {
+        background-color: lightgrey;
+        border: solid 1px black;
+        padding: 1em 0.8em;
+        margin: 0 0 0.8rem 0;
+        font-size: 0.8rem;
+        font-family: "Monaco", monospace;
+    }
+  learner_created: true
+- name: src/resources/static/js/initSnippets.js
+  visible: true
+  learner_created: true
+- name: src/platform/support/formatter/DefaultDateFormatter.java
+  visible: true
+  text: |
+    package platform.controller.util;
+
+    import java.time.LocalDateTime;
+    import java.time.format.DateTimeFormatter;
+
+    public class DefaultDateFormatter {
+        private static final String DATE_FORMAT_STRING = "yyyy/dd/MM HH:mm:ss";
+        private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT_STRING);
+
+        public static String format(LocalDateTime localDateTime) {
+            return localDateTime.format(DATE_FORMATTER);
+        }
+    }
+  learner_created: true
+- name: src/platform/presentation/freemarker/CodeSharingHtmlController.java
+  visible: true
+  text: |
+    package platform.controller.freemarker;
+
+    import org.springframework.http.MediaType;
+    import org.springframework.ui.Model;
+    import org.springframework.web.bind.annotation.GetMapping;
+    import org.springframework.web.bind.annotation.PathVariable;
+    import org.springframework.web.bind.annotation.RequestMapping;
+
+    @RequestMapping("/code")
+    public interface CodeSharingHtmlController {
+        @GetMapping(path ="/{id}", produces = MediaType.TEXT_HTML_VALUE)
+        String getReadCodePage(Model model, @PathVariable("id") int id) ;
+
+        @GetMapping(path = "/new", produces = MediaType.TEXT_HTML_VALUE)
+        String getCreateCodePage();
+
+        @GetMapping(path = "/latest", produces = MediaType.TEXT_HTML_VALUE)
+        String getReadLatestCodePage(Model model) ;
+    }
+  learner_created: true
+- name: src/platform/presentation/entity/CodeJBean.java
+  visible: true
+  text: |
+    package platform.controller.entity;
+
+    import com.fasterxml.jackson.annotation.JsonProperty;
+    import platform.controller.util.DefaultDateFormatter;
+    import platform.model.entity.Code;
+
+    import java.io.Serializable;
+
+    public class ReadCodeJBean implements Serializable {
+        private String code;
+        private String date;
+
+        public ReadCodeJBean() {
+        }
+
+        private ReadCodeJBean(String code, String date) {
+            this.code = code;
+            this.date = date;
+        }
+
+        public static ReadCodeJBean fromCode(Code code) {
+            final String dateString = DefaultDateFormatter.format(code.getDate());
+            return new ReadCodeJBean(code.getCode(), dateString);
+        }
+
+        @JsonProperty
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
+
+        @JsonProperty
+        public String getDate() {
+            return date;
+        }
+
+        public void setDate(String date) {
+            this.date = date;
+        }
+
+        @Override
+        public String toString() {
+            return "ReadCodeJBean{" +
+                    "code='" + code + '\'' +
+                    ", date='" + date + '\'' +
+                    '}';
+        }
+    }
+  learner_created: true
+- name: src/platform/presentation/entity/ApiErrorResponseJBean.java
+  visible: true
+  text: |
+    package platform.controller.entity;
+
+    import com.fasterxml.jackson.annotation.JsonProperty;
+    import platform.controller.util.DefaultDateFormatter;
+
+    import java.io.Serializable;
+    import java.time.LocalDateTime;
+
+    public class ApiErrorResponseJBean implements Serializable {
+        private String message;
+        private String date;
+
+        public ApiErrorResponseJBean() {
+        }
+
+        private ApiErrorResponseJBean(String message) {
+            this.message = message;
+            this.date = DefaultDateFormatter.format(LocalDateTime.now());
+        }
+
+        public static ApiErrorResponseJBean fromException(RuntimeException exception) {
+            return new ApiErrorResponseJBean(exception.getMessage());
+        }
+
+        @JsonProperty
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        @JsonProperty
+        public String getDate() {
+            return date;
+        }
+
+        public void setDate(String date) {
+            this.date = date;
+        }
+
+        @Override
+        public String toString() {
+            return "ApiErrorResponseJBean{" +
+                    "message='" + message + '\'' +
+                    ", date=" + date +
+                    '}';
+        }
+    }
+  learner_created: true
+- name: src/platform/presentation/api/CodeSharingAPI.java
+  visible: true
+  text: |
+    package platform.controller.api;
+
+    import org.springframework.http.MediaType;
+    import org.springframework.web.bind.annotation.*;
+    import platform.controller.entity.CreateCodeJBean;
+    import platform.controller.entity.ReadCodeJBean;
+
+    import java.util.Collection;
+    import java.util.Map;
+
+    @RequestMapping("/api/code")
+    public interface CodeSharingAPI {
+        @PostMapping(path = "/new", produces = MediaType.APPLICATION_JSON_VALUE)
+        Map<String, Object> createCode(@RequestBody CreateCodeJBean code) ;
+
+        @GetMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+        ReadCodeJBean readCode(@PathVariable("id") int id) ;
+
+        @GetMapping(path = "/latest", produces = MediaType.APPLICATION_JSON_VALUE)
+        Collection<ReadCodeJBean> readLatestCode() ;
+    }
+  learner_created: true
+- name: src/platform/presentation/freemarker/CodeSharingHtmlControllerImpl.java
+  visible: true
+  text: |
+    package platform.controller.freemarker;
+
+    import freemarker.template.DefaultObjectWrapper;
+    import freemarker.template.Version;
+    import org.springframework.stereotype.Controller;
+    import org.springframework.ui.Model;
+    import platform.model.entity.Code;
+    import platform.model.repository.CodeSharingRepository;
+
+    import java.util.Collection;
+
+    @Controller
+    public class CodeSharingHtmlControllerImpl implements CodeSharingHtmlController {
+        private final CodeSharingRepository repository;
+
+        public CodeSharingHtmlControllerImpl(CodeSharingRepository repository) {
+            this.repository = repository;
+        }
+
+        @Override
+        public String getReadCodePage(Model model, int id)  {
+            Code code = repository.readCode(id);
+            model.addAttribute("code", code);
+            model.addAttribute("statics", new DefaultObjectWrapper(new Version("2.3.29")).getStaticModels());
+            return "read_code";
+        }
+
+        @Override
+        public String getCreateCodePage() {
+            return "create_code";
+        }
+
+        @Override
+        public String getReadLatestCodePage(Model model)  {
+            Collection<Code> latestCode = repository.readLatestCode();
+            model.addAttribute("latestCode", latestCode);
+            model.addAttribute("statics", new DefaultObjectWrapper(new Version("2.3.29")).getStaticModels());
+            return "read_latest_code";
+        }
+    }
+  learner_created: true
+- name: src/platform/businesslayer/exception/CodeNotFoundException.java
+  visible: true
+  text: |
+    package platform.model.exception;
+
+    public class CodeNotFoundException extends RuntimeException {
+        private static final String MSG_TEMPLATE = "Code not found by id=%d";
+
+        public CodeNotFoundException(int id) {
+            super(String.format(MSG_TEMPLATE, id));
+        }
+    }
+  learner_created: true
+- name: src/platform/support/springconverter/RuntimeExceptionToApiErrorResponseJBeanConverter.java
+  visible: true
+  learner_created: true
+- name: src/platform/support/springconverter/CodeToCodeJBeanConverter.java
+  visible: true
+  learner_created: true
+- name: src/platform/support/springconverter/CodeJBeanToCodeConverter.java
+  visible: true
+  learner_created: true
+- name: src/platform/support/jpaconverter/LocalDateTimeAttributeConverter.java
+  visible: true
+  learner_created: true
+- name: src/platform/businesslayer/service/PersistentCodeSharingService.java
+  visible: true
+  learner_created: true
+- name: src/platform/businesslayer/service/CodeSharingService.java
+  visible: true
+  text: |
+    package platform.model.repository;
+
+    import platform.model.entity.Code;
+
+    import java.util.List;
+
+    public interface CodeSharingRepository {
+
+        int createCode(final String codeString) ;
+
+        Code readCode(final int index) ;
+
+        List<Code> readLatestCode(final int quantity) ;
+
+        default List<Code> readLatestCode()  {
+            return readLatestCode(10);
+        }
+    }
+  learner_created: true
+- name: build.gradle
+  visible: true
+  text: |-
+    buildscript {
+        apply plugin: 'hyperskill'
+
+        repositories {
+            mavenCentral()
+        }
+        dependencies {
+            classpath "org.springframework.boot:spring-boot-gradle-plugin:$hs.spring.bootVersion"
+            classpath "io.spring.gradle:dependency-management-plugin:$hs.spring.dependencyManagementVersion"
+        }
+    }
+
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+
+    repositories {
+        mavenCentral()
+    }
+
+    sourceSets.main.resources.srcDirs = ["src/resources"]
+
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter'
+        implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+    }
+  learner_created: false
+- name: src/platform/businesslayer/entity/Code.java
+  visible: true
+  text: |
+    package platform.model.entity;
+
+    import java.time.LocalDateTime;
+
+    public class Code {
+        private final String code;
+        private final LocalDateTime date;
+
+        public Code(String code, LocalDateTime date) {
+            this.code = code;
+            this.date = date;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public LocalDateTime getDate() {
+            return date;
+        }
+    }
+  learner_created: true
+- name: src/resources/application-hsqldb.yaml
+  visible: true
+  learner_created: true
+- name: src/platform/presentation/api/CodeSharingAPIImpl.java
+  visible: true
+  text: |
+    package platform.controller.api;
+
+    import org.springframework.http.HttpStatus;
+    import org.springframework.web.bind.annotation.ExceptionHandler;
+    import org.springframework.web.bind.annotation.ResponseStatus;
+    import org.springframework.web.bind.annotation.RestController;
+    import org.springframework.web.server.ResponseStatusException;
+    import platform.controller.entity.ApiErrorResponseJBean;
+    import platform.controller.entity.CreateCodeJBean;
+    import platform.controller.entity.ReadCodeJBean;
+    import platform.model.exception.CodeNotFoundException;
+    import platform.model.repository.CodeSharingRepository;
+
+    import java.util.Collection;
+    import java.util.Map;
+
+    @RestController
+    public class CodeSharingAPIImpl implements CodeSharingAPI {
+
+        private final CodeSharingRepository repository;
+
+        public CodeSharingAPIImpl(CodeSharingRepository repository) {
+            this.repository = repository;
+        }
+
+        @ExceptionHandler(CodeNotFoundException.class)
+        @ResponseStatus(HttpStatus.NOT_FOUND)
+        public ApiErrorResponseJBean codeNotFoundExceptionHandler(CodeNotFoundException exception) {
+            return ApiErrorResponseJBean.fromException(exception);
+        }
+
+        @Override
+        public Map<String, Object> createCode(CreateCodeJBean code)  {
+            var id = repository.createCode(code.getCode());
+            return Map.of("id", Integer.toString(id));
+        }
+
+        @Override
+        public ReadCodeJBean readCode(int id)  {
+            return ReadCodeJBean.fromCode(repository.readCode(id));
+        }
+
+        @Override
+        public Collection<ReadCodeJBean> readLatestCode()  {
+            var latestCode = repository.readLatestCode();
+            return latestCode.stream()
+                    .map(ReadCodeJBean::fromCode)
+                    .toList();
+        }
+    }
+  learner_created: true
+- name: src/platform/persistance/repository/CodeCrudRepository.java
+  visible: true
+  learner_created: true
+- name: src/platform/businesslayer/service/InMemoryCodeSharingService.java
+  visible: true
+  text: |
+    package platform.model.repository;
+
+    import org.springframework.stereotype.Repository;
+    import platform.model.entity.Code;
+    import platform.model.exception.CodeNotFoundException;
+
+    import java.time.LocalDateTime;
+    import java.util.ArrayList;
+    import java.util.Collections;
+    import java.util.List;
+
+    @Repository
+    public class InMemoryCodeSharingRepository implements CodeSharingRepository {
+
+        private final ArrayList<Code> saved = new ArrayList<>();
+
+        @Override
+        public int createCode(final String codeString) {
+            var code = new Code(codeString, LocalDateTime.now());
+            var id = saved.size();
+            saved.add(code);
+            return id + 1;
+        }
+
+        @Override
+        public Code readCode(final int index) throws CodeNotFoundException {
+            if (index < 1 || saved.size() < index) {
+                throw new CodeNotFoundException(index);
+            }
+            return saved.get(index - 1);
+        }
+
+        @Override
+        public List<Code> readLatestCode(final int quantity) {
+            var savedCpy = new ArrayList<>(saved);
+            Collections.reverse(savedCpy);
+            return savedCpy.subList(0, Math.min(quantity, savedCpy.size()));
+        }
+    }
+  learner_created: true
+- name: src/platform/CodeSharingPlatform.java
+  visible: true
+  text: |
+    package platform;
+
+    import org.springframework.boot.SpringApplication;
+    import org.springframework.boot.autoconfigure.SpringBootApplication;
+    import org.springframework.web.bind.annotation.RestController;
+
+    @SpringBootApplication
+    @RestController
+    public class CodeSharingPlatform {
+
+        public static void main(String[] args) {
+            SpringApplication.run(CodeSharingPlatform.class, args);
+        }
+
+    }
+  learner_created: false
+- name: src/resources/application.properties
+  visible: true
+  text: |
+    server.port=8889
+    management.endpoints.web.exposure.include=*
+    management.endpoint.shutdown.enabled=true
+  learner_created: false
+- name: src/resources/templates/create_code.ftlh
+  visible: true
+  learner_created: true
+- name: src/resources/templates/read_code.ftlh
+  visible: true
+  learner_created: true
+- name: src/resources/templates/read_latest_code.ftlh
+  visible: true
+  learner_created: true
+feedback_link: https://hyperskill.org/learn/step/11030#comment
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Wed, 12 Oct 2022 12:04:13 UTC
+record: 4

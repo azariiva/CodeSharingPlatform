@@ -1,0 +1,23 @@
+type: choice
+is_multiple_choice: false
+options:
+- text: it is a container that can be empty or filled with a value
+- text: it is an alternative way to write the if-else statement to avoid NPE
+- text: it is any class whose fields cannot be null
+files:
+- name: src/Task.java
+  visible: true
+  text: |
+    // You can experiment here, it won’t be checked
+
+    public class Task {
+      public static void main(String[] args) {
+        // put your code here
+      }
+    }
+  learner_created: false
+feedback_link: https://hyperskill.org/learn/step/9700#comment
+status: Solved
+record: -1
+custom_name: What is Optional?
+local_check: false

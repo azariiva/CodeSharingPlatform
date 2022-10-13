@@ -1,0 +1,28 @@
+#snippet_header {
+    font-size: 0.8rem;
+    height: 1.2em;
+    display: block;
+}
+
+#load_date {
+    color: green;
+    font-family: "Monaco", monospace;
+    float: left;
+}
+
+#language_name {
+    color: coral;
+    font-family: "Monaco", monospace;
+    float: right;
+}
+
+#snippet {
+    margin: 0.5em 0;
+}
+
+#code_snippet {
+    background-color: lightgrey;
+    border: solid 0.2em black;
+    font-size: 0.8rem;
+    font-family: "Monaco", monospace;
+}
